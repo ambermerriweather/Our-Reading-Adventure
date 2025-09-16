@@ -7,10 +7,14 @@ import Header from './components/Header';
 import Login from './components/Login';
 import StudentDashboard from './components/StudentDashboard';
 import ManageClass from './components/ManageClass';
+import ApiKeySetup from './components/ApiKeySetup';
+import { initializeAi } from './services/geminiService';
 
 const LOGS_STORAGE_KEY = 'ourReadingAdventuresLogs';
 const ROSTER_STORAGE_KEY = 'ourReadingAdventuresRoster';
 const SETTINGS_STORAGE_KEY = 'ourReadingAdventuresSettings';
+const API_KEY_STORAGE_KEY = 'geminiApiKey';
+
 
 function App() {
   const [logs, setLogs] = useState<ReadingLogEntry[]>(() => {
@@ -45,6 +49,17 @@ function App() {
   
   const [view, setView] = useState<'dashboard' | 'form' | 'manage'>('dashboard');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [isKeyChecked, setIsKeyChecked] = useState(false);
+
+  useEffect(() => {
+    const savedKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+    if (savedKey) {
+      initializeAi(savedKey);
+      setApiKey(savedKey);
+    }
+    setIsKeyChecked(true);
+  }, []);
 
   useEffect(() => {
     try {
@@ -131,6 +146,12 @@ function App() {
     setCurrentUser(null);
   };
   
+  const handleApiKeySubmit = (key: string) => {
+    localStorage.setItem(API_KEY_STORAGE_KEY, key);
+    initializeAi(key);
+    setApiKey(key);
+  };
+  
   const renderView = () => {
     if (!currentUser) return null;
     
@@ -156,6 +177,18 @@ function App() {
         return null;
     }
   };
+
+  if (!isKeyChecked) {
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-blue-50">
+            <p>Loading...</p>
+        </div>
+    );
+  }
+
+  if (!apiKey) {
+    return <ApiKeySetup onApiKeySubmit={handleApiKeySubmit} />;
+  }
 
   if (!currentUser) {
     return <Login onLogin={handleLogin} roster={roster} classCode={classSettings.classCode} />;

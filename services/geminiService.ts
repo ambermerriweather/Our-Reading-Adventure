@@ -1,12 +1,24 @@
 import { GoogleGenAI } from "@google/genai";
 import type { ReadingLogEntry } from "../types";
 
-// FIX: Per coding guidelines, API_KEY from process.env.API_KEY is always assumed to be present.
-// The constructor now directly uses process.env.API_KEY.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+let ai: GoogleGenAI | null = null;
+
+export const initializeAi = (apiKey: string) => {
+  if (!apiKey) {
+    console.error("API Key is missing. AI Service could not be initialized.");
+    return;
+  }
+  ai = new GoogleGenAI({ apiKey });
+};
+
+const getAiClient = (): GoogleGenAI => {
+    if (!ai) {
+        throw new Error('AI Service not initialized. Please set the API Key first.');
+    }
+    return ai;
+}
 
 export const analyzeStudentReadings = async (logs: ReadingLogEntry[]): Promise<string> => {
-  // FIX: Per coding guidelines, API_KEY from process.env.API_KEY is always assumed to be present, so this check is removed.
   const prompt = `
 You are an expert reading coach providing insights to a teacher about a student.
 Analyze the following reading logs, provided in JSON format, for this student.
@@ -23,21 +35,20 @@ ${JSON.stringify(logs, null, 2)}
 `;
 
   try {
-    // FIX: model name string is passed directly as per guidelines.
-    const response = await ai.models.generateContent({
+    const client = getAiClient();
+    const response = await client.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
     });
     return response.text;
   } catch (error) {
     console.error("Error calling Gemini API for student analysis:", error);
-    return "An error occurred while analyzing the reading data. Please check the console for details.";
+    return "An error occurred while analyzing the reading data. This could be due to an invalid API key or network issues.";
   }
 };
 
 
 export const analyzeClassReadings = async (logs: ReadingLogEntry[]): Promise<string> => {
-  // FIX: Per coding guidelines, API_KEY from process.env.API_KEY is always assumed to be present, so this check is removed.
   const prompt = `
 You are an AI teaching assistant analyzing a 6th-grade class's reading habits.
 Based on the entire class's reading logs (provided as a JSON array):
@@ -52,8 +63,8 @@ ${JSON.stringify(logs, null, 2)}
 `;
 
   try {
-    // FIX: model name string is passed directly as per guidelines.
-    const response = await ai.models.generateContent({
+    const client = getAiClient();
+    const response = await client.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
     });
@@ -66,12 +77,11 @@ ${JSON.stringify(logs, null, 2)}
 
 
 export const generateBookCover = async (title: string, author: string): Promise<string> => {
-  // FIX: Per coding guidelines, API_KEY from process.env.API_KEY is always assumed to be present, so this check is removed.
   const prompt = `Generate a unique and artistic book cover for a young adult novel titled "${title}" by ${author}. The style should be imaginative, colorful, and suitable for middle school readers. The cover must not contain any text, words, or letters.`;
 
   try {
-    // FIX: model name string is passed directly and outputMimeType is updated as per guidelines.
-    const response = await ai.models.generateImages({
+    const client = getAiClient();
+    const response = await client.models.generateImages({
         model: 'imagen-4.0-generate-001',
         prompt: prompt,
         config: {
@@ -104,7 +114,8 @@ Write a short, positive, and constructive feedback comment (2-3 sentences).
 - Keep the tone encouraging and friendly.
 `;
   try {
-    const response = await ai.models.generateContent({
+    const client = getAiClient();
+    const response = await client.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
     });
