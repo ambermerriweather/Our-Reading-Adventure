@@ -1,0 +1,5 @@
+{
+  "name": "Our Reading Adventures",
+  "description": "An interactive dashboard for teachers to track student reading progress. It features a student submission form, data visualizations, and AI-powered analysis to provide insights and book recommendations.",
+  "requestFramePermissions": []
+}
